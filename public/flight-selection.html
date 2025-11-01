@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Flights</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Search Flights</h1>
+        <form id="search-form" action="/search-flights" method="GET">
+            <label for="departure">Departure:</label>
+            <input type="text" id="departure" name="departure" placeholder="Departure" required pattern="[A-Za-z\s]+" title="Departure must contain only alphabets">
+
+            <label for="arrival">Arrival:</label>
+            <input type="text" id="arrival" name="arrival" placeholder="Arrival" required pattern="[A-Za-z\s]+" title="Arrival must contain only alphabets">
+
+            <button type="submit">Search</button>
+        </form>
+        
+        <div id="flight-results">
+            <h2>Flight Results</h2>
+            <table id="results-table" border="1">
+                <thead>
+                    <tr>
+                        <th>Flight ID</th>
+                        <th>Airplane Code</th>
+                        <th>Airplane Name</th>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Departure Date</th>
+                        <th>Departure Time</th>
+                        <th>Arrival Date</th>
+                        <th>Arrival Time</th>
+                        <th>Total Seats</th>
+                        <th>Price</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Flight results will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('search-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+    
+            const departure = document.getElementById('departure').value.trim();
+            const arrival = document.getElementById('arrival').value.trim();
+
+            // Validate departure and arrival inputs to ensure they only contain alphabets
+            const alphabetPattern = /^[A-Za-z\s]+$/;
+            if (!alphabetPattern.test(departure)) {
+                alert('Departure field must contain only alphabets.');
+                return;
+            }
+            if (!alphabetPattern.test(arrival)) {
+                alert('Arrival field must contain only alphabets.');
+                return;
+            }
+
+            // Validate if all required fields are filled
+            if (!departure || !arrival) {
+                alert('All fields are required.');
+                return;
+            }
+    
+            const formData = new FormData(this);
+            const query = new URLSearchParams(formData).toString();
+    
+            fetch(`/search-flights?${query}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.length === 0) {
+                        alert('No flights found.');
+                        return;
+                    }
+    
+                    const tableBody = document.querySelector('#results-table tbody');
+                    tableBody.innerHTML = ''; // Clear previous results
+    
+                    data.forEach(flight => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${flight.id}</td>
+                            <td>${flight.airplane_code}</td>
+                            <td>${flight.airplane_name}</td>
+                            <td>${flight.departure}</td>
+                            <td>${flight.arrival}</td>
+                            <td>${moment(flight.departure_date).format('YYYY-MM-DD')}</td>
+                            <td>${moment(flight.departure_time, 'HH:mm:ss').format('hh:mm A')}</td>
+                            <td>${moment(flight.arrival_date).format('YYYY-MM-DD')}</td>
+                            <td>${moment(flight.arrival_time, 'HH:mm:ss').format('hh:mm A')}</td>
+                            <td>${flight.total_seats}</td>
+                            <td>${flight.price}</td>
+                            <td><button onclick='proceedToService(${JSON.stringify(flight)})'>Proceed</button></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching flight results:', error);
+                });
+        });
+    
+        function proceedToService(flight) {
+            localStorage.setItem('selectedFlightId', flight.id);
+            localStorage.setItem('selectedFlight', JSON.stringify(flight));
+            window.location.href = 'passenger-details.html';
+        }
+    </script>
+</body>
+</html>
